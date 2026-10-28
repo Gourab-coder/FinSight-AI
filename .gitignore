@@ -1,0 +1,55 @@
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE settings
+.vscode/
+.idea/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+
+# Streamlit local configuration
+.streamlit/secrets.toml
+
+# Temporary files
+*.tmp
+*.bak
+
+# Local model artifacts (review before committing)
+# Uncomment if model files should not be stored in Git
+# models/*.joblib
+
+# Local datasets (review before committing)
+# Uncomment if datasets should not be stored in Git
+# data/raw/*.csv
