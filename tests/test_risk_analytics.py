@@ -26,7 +26,7 @@ class RiskAnalyticsTests(unittest.TestCase):
         data = pd.DataFrame(
             {
                 "segment": ["A", "A", "B", None],
-                "target_default_within_12m": [1, 0, 1, 0],
+                "loan_status": [1, 0, 1, 0],
             }
         )
         result = summarize_default_rates(data, "segment")
@@ -39,7 +39,7 @@ class RiskAnalyticsTests(unittest.TestCase):
         data = pd.DataFrame(
             {
                 "segment": ["A", "A", "B"],
-                "target_default_within_12m": [1, 0, 1],
+                "loan_status": [1, 0, 1],
             }
         )
         result = summarize_default_rates(data, "segment", minimum_group_size=2)
@@ -49,9 +49,9 @@ class RiskAnalyticsTests(unittest.TestCase):
         artifact = load_model_artifact()
         result = get_global_feature_importance(artifact)
         self.assertIn("feature", result)
-        self.assertIn("mean_impurity_importance", result)
-        self.assertTrue(result["mean_impurity_importance"].is_monotonic_decreasing)
-        self.assertEqual(result.iloc[0]["feature"], "debt_to_income_after_loan")
+        self.assertIn("mean_feature_importance", result)
+        self.assertTrue(result["mean_feature_importance"].is_monotonic_decreasing)
+        self.assertEqual(set(result["feature"]), set(artifact["features"]))
 
 
 if __name__ == "__main__":

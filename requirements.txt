@@ -1,11 +1,18 @@
-# Pin the model serialization, inference, and dashboard environment to the
-# versions used to create and smoke-test models/credit_risk_model.joblib.
+# Data processing and visualization
 pandas==3.1.0
 numpy==2.5.4
 matplotlib==3.11.2
 seaborn==0.13.2
+
+# Machine Learning
 scikit-learn==1.9.1
+xgboost==3.4.1
+shap==0.54.1
+
+# Model serialization
 joblib==1.6.0
+
+# Dashboard
 streamlit==1.66.1
 
 # Notebook environment

@@ -37,7 +37,7 @@ def _bounded_fraction(name: str, value: float) -> float:
 def summarize_default_rates(
     data: pd.DataFrame,
     feature: str,
-    target: str = "target_default_within_12m",
+    target: str = "loan_status",
     minimum_group_size: int = 1,
 ) -> pd.DataFrame:
     """Return counts and observed label rates, preserving missing categories."""
@@ -62,13 +62,13 @@ def summarize_default_rates(
 
 
 def get_global_feature_importance(artifact: Mapping[str, Any]) -> pd.DataFrame:
-    """Average tree importances across calibration folds and group one-hot fields."""
-    pipeline = artifact["pipeline"]
-    calibrated_models = getattr(pipeline, "calibrated_classifiers_", None)
+    """Average fitted tree importances across calibration folds and group encoded fields."""
+    model_pipeline = artifact["model"]
+    calibrated_models = getattr(model_pipeline, "calibrated_classifiers_", None)
     if not calibrated_models:
         raise ValueError("The saved calibrated pipeline does not expose fitted calibration estimators.")
 
-    feature_columns = list(artifact["model_input_columns"])
+    feature_columns = list(artifact["features"])
     fold_importances: list[pd.Series] = []
     for calibrated_model in calibrated_models:
         estimator = getattr(calibrated_model, "estimator", None)
@@ -77,37 +77,35 @@ def get_global_feature_importance(artifact: Mapping[str, Any]) -> pd.DataFrame:
         if estimator is None or not hasattr(estimator, "named_steps"):
             raise ValueError("A calibrated estimator does not expose its fitted pipeline.")
         preprocessor = estimator.named_steps.get("preprocessor")
-        model = estimator.named_steps.get("model")
-        if preprocessor is None or not hasattr(model, "feature_importances_"):
+        fitted_model = estimator.named_steps.get("classifier")
+        if fitted_model is None:
+            fitted_model = estimator.named_steps.get("model")
+        if preprocessor is None or not hasattr(fitted_model, "feature_importances_"):
             raise ValueError("The fitted model does not expose tree-based feature importances.")
 
         transformed_names = preprocessor.get_feature_names_out()
-        importances = np.asarray(model.feature_importances_, dtype=float)
+        importances = np.asarray(fitted_model.feature_importances_, dtype=float)
         if importances.ndim != 1 or len(importances) != len(transformed_names):
             raise ValueError("Transformed feature names and fitted importance values do not align.")
 
         grouped_importance: dict[str, float] = {}
         for transformed_name, importance in zip(transformed_names, importances):
             local_name = transformed_name.split("__", 1)[-1]
-            is_missing_indicator = local_name.startswith("missingindicator_")
-            source_name = local_name.removeprefix("missingindicator_") if is_missing_indicator else local_name
             feature_name = next(
                 (
                     column
-                    for column in feature_columns
-                    if source_name == column or source_name.startswith(f"{column}_")
+                    for column in sorted(feature_columns, key=len, reverse=True)
+                    if local_name == column or local_name.startswith(f"{column}_")
                 ),
-                source_name,
+                local_name,
             )
-            if is_missing_indicator:
-                feature_name = f"{feature_name} (missingness)"
             grouped_importance[feature_name] = grouped_importance.get(feature_name, 0.0) + float(importance)
         fold_importances.append(pd.Series(grouped_importance, dtype=float))
 
     result = pd.concat(fold_importances, axis=1).fillna(0.0)
     return (
         result.mean(axis=1)
-        .rename("mean_impurity_importance")
+        .rename("mean_feature_importance")
         .sort_values(ascending=False)
         .rename_axis("feature")
         .reset_index()
